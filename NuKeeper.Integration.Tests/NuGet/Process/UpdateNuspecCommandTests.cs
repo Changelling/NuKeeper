@@ -14,9 +14,17 @@ namespace NuKeeper.Integration.Tests.NuGet.Process
     public class UpdateNuspecCommandTests : TestWithFailureLogging
     {
         private readonly string _testNuspec =
-@"<package><metadata><dependencies>
-      <dependency id=""foo"" version=""{packageVersion}"" />
-</dependencies></metadata></package>
+@"<package>
+    <metadata>
+        <releaseNotes>
+          [Date][v1.0.0]
+                Added new version
+        </releaseNotes>
+        <dependencies>
+            <dependency id=""foo"" version=""{packageVersion}"" />
+        </dependencies>
+    </metadata>
+</package>
 ";
 
         [Test]
@@ -31,6 +39,8 @@ namespace NuKeeper.Integration.Tests.NuGet.Process
             const string newPackageVersion = "5.3.4";
             const string expectedPackageString =
                 "<dependency id=\"foo\" version=\"{packageVersion}\" />";
+            const string expectedReleaseNote =
+                "Updated dependencies for foo to version {packageVersion}";
 
             var testFolder = memberName;
             var testNuspec = $"{memberName}.nuspec";
@@ -50,6 +60,9 @@ namespace NuKeeper.Integration.Tests.NuGet.Process
             var contents = await File.ReadAllTextAsync(projectPath);
             Assert.That(contents, Does.Contain(expectedPackageString.Replace("{packageVersion}", newPackageVersion, StringComparison.OrdinalIgnoreCase)));
             Assert.That(contents, Does.Not.Contain(expectedPackageString.Replace("{packageVersion}", oldPackageVersion, StringComparison.OrdinalIgnoreCase)));
+
+            Assert.That(contents, Does.Contain(expectedReleaseNote.Replace("{packageVersion}", newPackageVersion, StringComparison.OrdinalIgnoreCase)));
+            Assert.That(contents, Does.Not.Contain(expectedReleaseNote.Replace("{packageVersion}", oldPackageVersion, StringComparison.OrdinalIgnoreCase)));
         }
     }
 }

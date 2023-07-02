@@ -50,13 +50,19 @@ namespace NuKeeper.Update.Process
         private void UpdateNuspec(Stream fileContents, NuGetVersion newVersion,
             PackageInProject currentPackage, XDocument xml)
         {
-            var packagesNode = xml.Element("package")?.Element("metadata")?.Element("dependencies");
+            var packagesNode = xml.Element("package")?.Element("metadata");
             if (packagesNode == null)
             {
                 return;
             }
 
-            var packageNodeList = packagesNode.Elements()
+            //dependency update
+            var dependencyNode = packagesNode?.Element("dependencies");
+            if (dependencyNode == null)
+            {
+                return;
+            }
+            var packageNodeList = dependencyNode.Elements()
                 .Where(x => x.Name == "dependency" && x.Attributes("id")
                 .Any(a => a.Value == currentPackage.Id));
 
@@ -64,6 +70,16 @@ namespace NuKeeper.Update.Process
             {
                 _logger.Detailed($"Updating nuspec depenencies: {currentPackage.Id} in path {currentPackage.Path.FullName}");
                 dependencyToUpdate.Attribute("version").Value = newVersion.ToString();
+            }
+            //release note update
+            var releaseNotesNode = packagesNode?.Element("releaseNotes");
+            if (releaseNotesNode != null)
+            {
+                var currentReleaseNotes = releaseNotesNode.Value;                
+                var newReleaseNotes = $@"
+          [{DateTime.Now:yyyy-MM-dd}][v{newVersion.ToString()}]
+              Updated dependencies for {currentPackage.Id} to version {newVersion.ToString()}";
+                releaseNotesNode.Value = $"{newReleaseNotes}{currentReleaseNotes}";
             }
 
             xml.Save(fileContents);
