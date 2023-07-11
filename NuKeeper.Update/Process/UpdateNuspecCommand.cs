@@ -50,21 +50,22 @@ namespace NuKeeper.Update.Process
         private void UpdateNuspec(Stream fileContents, NuGetVersion newVersion,
             PackageInProject currentPackage, XDocument xml)
         {
-            var packagesNode = xml.Element("package")?.Element("metadata");
+            var ns = xml.Root?.GetDefaultNamespace();
+            var packagesNode = (ns == null) ? xml.Element("package")?.Element("metadata") : xml.Element(ns + "package")?.Element(ns + "metadata");
             if (packagesNode == null)
             {
                 return;
             }
 
             //dependency update
-            var dependencyNode = packagesNode?.Element("dependencies");
+            var dependencyNode = string.IsNullOrEmpty(ns.NamespaceName) ? packagesNode?.Element("dependencies"): packagesNode?.Element(ns + "dependencies");
             if (dependencyNode == null)
             {
                 return;
             }
-            var packageNodeList = dependencyNode.Elements()
-                .Where(x => x.Name == "dependency" && x.Attributes("id")
-                .Any(a => a.Value == currentPackage.Id));
+
+            var packageNodeList = string.IsNullOrEmpty(ns.NamespaceName) ? dependencyNode.Elements("dependency").Concat(dependencyNode.Elements("group").Elements("dependency")).Where(x=> x.Attributes("id").Any(a => a.Value == currentPackage.Id)) :
+                dependencyNode.Elements(ns + "dependency").Concat(dependencyNode.Elements(ns + "group").Elements(ns + "dependency")).Where(x => x.Attributes("id").Any(a => a.Value == currentPackage.Id));               
 
             foreach (var dependencyToUpdate in packageNodeList)
             {
@@ -72,13 +73,13 @@ namespace NuKeeper.Update.Process
                 dependencyToUpdate.Attribute("version").Value = newVersion.ToString();
             }
             //release note update
-            var releaseNotesNode = packagesNode?.Element("releaseNotes");
+            var releaseNotesNode = string.IsNullOrEmpty(ns.NamespaceName) ? packagesNode?.Element("releaseNotes"): packagesNode?.Element(ns + "releaseNotes");
             if (releaseNotesNode != null)
             {
-                var currentReleaseNotes = releaseNotesNode.Value;                
+                var currentReleaseNotes = releaseNotesNode.Value;
                 var newReleaseNotes = $@"
-          [{DateTime.Now:yyyy-MM-dd}][v{newVersion.ToString()}]
-              Updated dependencies for {currentPackage.Id} to version {newVersion.ToString()}";
+      [{DateTime.Now:yyyy-MM-dd}][v{newVersion.ToString()}]
+          Updated dependencies for {currentPackage.Id} to version {newVersion.ToString()}";
                 releaseNotesNode.Value = $"{newReleaseNotes}{currentReleaseNotes}";
             }
 

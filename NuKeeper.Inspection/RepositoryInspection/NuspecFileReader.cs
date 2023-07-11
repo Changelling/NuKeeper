@@ -44,15 +44,20 @@ namespace NuKeeper.Inspection.RepositoryInspection
         public IReadOnlyCollection<PackageInProject> Read(Stream fileContents, PackagePath path)
         {
             var xml = XDocument.Load(fileContents);
-
-            var packagesNode = xml.Element("package")?.Element("metadata")?.Element("dependencies");
+            var ns = xml.Root?.GetDefaultNamespace();
+            var packagesNode = string.IsNullOrEmpty(ns.NamespaceName) ? xml.Element("package")?.Element("metadata")?.Element("dependencies") :
+                xml.Element(ns + "package")?.Element(ns + "metadata")?.Element(ns + "dependencies");
             if (packagesNode == null)
             {
                 return Array.Empty<PackageInProject>();
             }
 
-            var packageNodeList = packagesNode.Elements()
-                .Where(x => x.Name == "dependency");
+            var packageNodeList = string.IsNullOrEmpty(ns.NamespaceName) ? packagesNode.Elements("dependency").Concat(packagesNode.Elements("group").Elements("dependency")) :
+                packagesNode.Elements(ns + "dependency").Concat(packagesNode.Elements(ns + "group").Elements(ns + "dependency"));
+            if (packageNodeList == null)
+            {
+                return Array.Empty<PackageInProject>();
+            }
 
             return packageNodeList
                 .Select(el => XmlToPackage(el, path))

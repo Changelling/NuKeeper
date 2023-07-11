@@ -14,14 +14,17 @@ namespace NuKeeper.Integration.Tests.NuGet.Process
     public class UpdateNuspecCommandTests : TestWithFailureLogging
     {
         private readonly string _testNuspec =
-@"<package>
+@"<?xml version=""1.0"" encoding=""utf-8""?>
+<package xmlns=""http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd"">
     <metadata>
         <releaseNotes>
           [Date][v1.0.0]
                 Added new version
         </releaseNotes>
         <dependencies>
-            <dependency id=""foo"" version=""{packageVersion}"" />
+            <group targetFramework=""net6.0"">
+                <dependency id=""foo"" version=""{packageVersion}"" />
+            </group>
         </dependencies>
     </metadata>
 </package>

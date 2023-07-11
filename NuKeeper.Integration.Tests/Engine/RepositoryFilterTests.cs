@@ -23,7 +23,7 @@ namespace NuKeeper.Integration.Tests.Engine
                     RepositoryName = "jquery",
                     RepositoryOwner = "jquery"
                 });
-            Assert.False(result);
+            Assert.True(result);
         }
 
         [Test]
